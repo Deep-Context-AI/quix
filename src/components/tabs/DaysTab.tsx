@@ -54,10 +54,11 @@ export function DaysTab({ config, updateConfig, startDate, onStartDateChange }: 
               type="date"
               onChange={(e) => {
                 const selected = new Date(e.target.value);
-                // Adjust to the Sunday of that week if not already Sunday
-                if (selected.getDay() !== 0) {
-                  selected.setDate(selected.getDate() - selected.getDay());
-                  // Overwrite the value to the corrected Sunday
+                // Adjust to the Monday of that week if not already Monday
+                if (selected.getDay() !== 1) { // 1 is Monday
+                  const daysToAdd = selected.getDay() === 0 ? -6 : (1 - selected.getDay());
+                  selected.setDate(selected.getDate() + daysToAdd);
+                  // Overwrite the value to the corrected Monday
                   e.target.value = selected.toISOString().slice(0, 10);
                 }
                 onStartDateChange(e);

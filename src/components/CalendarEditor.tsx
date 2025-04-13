@@ -32,7 +32,15 @@ interface CalendarEditorProps {
 
 export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
   const [activeTab, setActiveTab] = useState<string>('general');
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(() => {
+    // Initialize with the current Monday
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    // If today is Sunday (0), go back 6 days, otherwise calculate days to go back to get to Monday (1)
+    const daysToAdjust = dayOfWeek === 0 ? -6 : (1 - dayOfWeek);
+    today.setDate(today.getDate() + daysToAdjust);
+    return today;
+  });
   const initialRender = useRef(true);
 
   const updateConfig = (updates: Partial<FlierConfig>) => {
@@ -51,7 +59,7 @@ export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
       return;
     }
 
-    const weekDays = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const weekDays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
     const dates = getWeekDates(startDate);
     
     // Only update dates, keep other day properties
@@ -62,7 +70,7 @@ export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
     }));
     
     onChange({ ...config, days: newDays });
-  }, [startDate]); // Only depend on startDate
+  }, [startDate, config, onChange]); // Added missing dependencies
 
   // Handler for week start date change
   const handleWeekStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +83,6 @@ export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
   return (
     <div className="h-full overflow-y-auto !p-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Calendar Editor</h2>
         <Button variant="outline" onClick={resetToDefault}>Reset to Default</Button>
       </div>
       

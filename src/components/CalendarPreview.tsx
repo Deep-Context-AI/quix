@@ -71,6 +71,9 @@ export const CalendarPreview = forwardRef<HTMLDivElement, CalendarPreviewProps>(
           fontFamily: 'Arial, sans-serif',
           width: config.dimensions?.width || '8in',
           height: config.dimensions?.height || '10in',
+          maxWidth: '100%',
+          maxHeight: forExport ? 'none' : 'calc(100vh - 140px)',
+          aspectRatio: forExport ? 'auto' : '0.8/1',
         }}
       >
         {/* Left side - Calendar */}
