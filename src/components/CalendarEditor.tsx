@@ -42,6 +42,7 @@ export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
     return today;
   });
   const initialRender = useRef(true);
+  const prevStartDate = useRef(startDate);
 
   const updateConfig = (updates: Partial<FlierConfig>) => {
     onChange({ ...config, ...updates });
@@ -59,6 +60,13 @@ export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
       return;
     }
 
+    // Skip if startDate hasn't changed
+    if (prevStartDate.current.getTime() === startDate.getTime()) {
+      return;
+    }
+    
+    prevStartDate.current = startDate;
+    
     const weekDays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
     const dates = getWeekDates(startDate);
     
@@ -69,8 +77,9 @@ export function CalendarEditor({ config, onChange }: CalendarEditorProps) {
       date: dates[index]
     }));
     
+    // Use functional update to ensure we're working with latest state
     onChange({ ...config, days: newDays });
-  }, [startDate, config, onChange]); // Added missing dependencies
+  }, [startDate, config, onChange]);
 
   // Handler for week start date change
   const handleWeekStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {

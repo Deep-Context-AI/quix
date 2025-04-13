@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { CalendarEditor } from './CalendarEditor';
 import { CalendarPreview } from './CalendarPreview';
 import { FlierConfig, defaultFlierConfig } from '../lib/types';
 import { toPng } from 'html-to-image';
 import confetti from 'canvas-confetti';
-import { Sun, Moon, ZoomIn, ZoomOut, Maximize, Clipboard, Menu, X } from 'lucide-react';
+import { Sun, Moon, ZoomIn, ZoomOut, Maximize, Clipboard, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet, SheetContent } from './ui/sheet';
 
 // Helper function to show toast notification
@@ -74,11 +74,18 @@ export function CalendarTemplate() {
   
   // Hidden div for export/copy operations
   const [showExportPreview, setShowExportPreview] = useState(false);
-
+  const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
+  
   // Check screen size for responsiveness
   useEffect(() => {
     const checkScreenSize = () => {
       setIsDesktop(window.innerWidth >= 768);
+      // Set a narrower default editor width for larger screens
+      if (window.innerWidth >= 1280) {
+        setEditorWidth(25); // Narrower default for large screens
+      } else if (window.innerWidth >= 768) {
+        setEditorWidth(30); // Medium width for medium screens
+      }
     };
     
     // Initial check
@@ -91,10 +98,10 @@ export function CalendarTemplate() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Wrap setConfig to ensure format migration
-  const updateConfig = (newConfig: FlierConfig) => {
+  // Wrap updateConfig in useCallback to prevent infinite loops
+  const updateConfig = useCallback((newConfig: FlierConfig) => {
     setConfig(migrateHashtags(newConfig));
-  };
+  }, []);
 
   const copyToClipboard = async () => {
     // Show the export preview
@@ -224,6 +231,11 @@ export function CalendarTemplate() {
     }
   }, [isDragging]);
 
+  // Toggle editor panel collapsed state
+  const toggleEditorCollapse = () => {
+    setIsEditorCollapsed(!isEditorCollapsed);
+  };
+
   return (
     <div className={`h-screen flex flex-col ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       {/* Hidden div for export/copy without border */}
@@ -280,7 +292,9 @@ export function CalendarTemplate() {
               </Button>
             </div>
             <div className="flex-1 overflow-auto">
-              <CalendarEditor config={config} onChange={updateConfig} />
+              {isSidebarOpen && (
+                <CalendarEditor config={config} onChange={updateConfig} />
+              )}
             </div>
             <div className="p-3 text-xs text-center text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
               Made with ❤️ by Quix
@@ -296,8 +310,12 @@ export function CalendarTemplate() {
       >
         {/* Left panel - Editor (hidden on medium and small screens) */}
         <div 
-          className="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-auto flex flex-col hidden md:flex"
-          style={{ width: `${editorWidth}%` }}
+          className={`border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-auto flex flex-col hidden md:flex transition-all duration-300 ${isEditorCollapsed ? 'md:w-0 opacity-0 overflow-hidden' : ''}`}
+          style={{ 
+            width: isEditorCollapsed ? '0%' : `${editorWidth}%`,
+            opacity: isEditorCollapsed ? 0 : 0.95,
+            maxWidth: isEditorCollapsed ? '0' : '400px'
+          }}
         >
           <div className="flex-1 overflow-auto p-4">
             <CalendarEditor config={config} onChange={updateConfig} />
@@ -307,9 +325,22 @@ export function CalendarTemplate() {
           </div>
         </div>
         
+        {/* Toggle button for editor panel */}
+        <button 
+          className="absolute top-1/2 transform -translate-y-1/2 left-0 z-20 hidden md:flex items-center justify-center bg-blue-500 dark:bg-blue-600 text-white p-1 rounded-r-md shadow-md transition-all duration-300 focus:outline-none hover:bg-blue-600 dark:hover:bg-blue-700"
+          onClick={toggleEditorCollapse}
+          aria-label={isEditorCollapsed ? 'Expand editor' : 'Collapse editor'}
+          style={{ 
+            left: isEditorCollapsed ? '0' : `calc(${editorWidth}% - 1px)`,
+            maxWidth: isEditorCollapsed ? '24px' : '24px'
+          }}
+        >
+          {isEditorCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </button>
+        
         {/* Resizer handle (hidden on medium and small screens) */}
         <div 
-          className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-blue-400 dark:hover:bg-blue-500 cursor-col-resize flex items-center justify-center z-10 relative active:bg-blue-600 hidden md:flex"
+          className={`w-1 bg-gray-200 dark:bg-gray-700 hover:bg-blue-400 dark:hover:bg-blue-500 cursor-col-resize flex items-center justify-center z-10 relative active:bg-blue-600 hidden ${isEditorCollapsed ? 'md:hidden' : 'md:flex'}`}
           onMouseDown={handleDragStart}
           onMouseUp={handleDragEnd}
         >
@@ -324,7 +355,7 @@ export function CalendarTemplate() {
         {/* Right panel - Preview (full width on medium and small screens) */}
         <div 
           className="overflow-auto bg-gray-100 dark:bg-gray-900 flex flex-col w-full md:w-auto flex-grow"
-          style={{ width: isDesktop ? `${100 - editorWidth}%` : '100%' }}
+          style={{ width: isEditorCollapsed ? '100%' : (isDesktop ? `${100 - editorWidth}%` : '100%') }}
         >
           <div className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 flex items-center justify-center relative preview-container">
             <div className="relative max-w-full max-h-full flex items-center justify-center">
